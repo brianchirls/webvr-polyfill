@@ -252,7 +252,7 @@ VRDisplay.prototype.exitPresent = function() {
     if (wasPresenting) {
       if (!Util.exitFullscreen() && Util.isIOS()) {
         self.endPresent_();
-        self.fireVRDisplayPresentChange_();
+        self.fullscreenWrapper_.dispatchEvent(new CustomEvent('fullscreenchange'));
       }
 
       resolve();
