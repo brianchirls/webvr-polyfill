@@ -1095,6 +1095,7 @@ function VRDisplay() {
   this.fullscreenEventTarget_ = null;
   this.fullscreenChangeHandler_ = null;
   this.fullscreenErrorHandler_ = null;
+  this.resizeHandler_ = null;
 
   this.wakelock_ = new WakeLock();
 }
@@ -1246,6 +1247,7 @@ VRDisplay.prototype.requestPresent = function(layers) {
           self.wakelock_.release();
           self.endPresent_();
           self.removeFullscreenListeners_();
+          self.removeResizeListener_();
         }
         self.fireVRDisplayPresentChange_();
       }
@@ -1256,6 +1258,7 @@ VRDisplay.prototype.requestPresent = function(layers) {
 
         self.removeFullscreenWrapper();
         self.removeFullscreenListeners_();
+        self.removeResizeListener_();
 
         self.wakelock_.release();
         self.waitingForPresent_ = false;
@@ -1264,8 +1267,19 @@ VRDisplay.prototype.requestPresent = function(layers) {
         reject(new Error('Unable to present.'));
       }
 
+      function onResize() {
+        if (Util.isLandscapeMode() && window.innerHeight < screen.availWidth) {
+          self.exitPresent();
+        }
+      }
+
       self.addFullscreenListeners_(fullscreenElement,
           onFullscreenChange, onFullscreenError);
+
+      // Exit VR when Mobile Safari reveals URL bar and buttons
+      if (Util.isIOS()) {
+        self.addResizeListener_(onResize);
+      }
 
       if (Util.requestFullscreen(fullscreenElement)) {
         self.wakelock_.request();
@@ -1367,6 +1381,19 @@ VRDisplay.prototype.removeFullscreenListeners_ = function() {
   this.fullscreenEventTarget_ = null;
   this.fullscreenChangeHandler_ = null;
   this.fullscreenErrorHandler_ = null;
+};
+
+VRDisplay.prototype.addResizeListener_ = function(resizeHandler) {
+  this.removeResizeListener_();
+  this.resizeHandler_ = resizeHandler;
+  window.addEventListener('resize', resizeHandler, false);
+};
+
+VRDisplay.prototype.removeResizeListener_ = function() {
+  if (this.resizeHandler_) {
+    window.removeEventListener('resize', this.resizeHandler_, false);
+    this.resizeHandler_ = null;
+  }
 };
 
 VRDisplay.prototype.beginPresent_ = function() {
